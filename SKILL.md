@@ -126,7 +126,7 @@ Minimum file requirements per level:
 
 ### Change-Log.md
 
-- **Role**: change ledger for every document at each level (except Plan-and-Progress), keeping documents replayable and their latest version determinable; silent overwrites are forbidden.
+- **Role**: change ledger whose registration scope is the documents within its own directory (the overall directory and every feature-module/submodule directory), excluding Plan-and-Progress (which may be overwritten in place without logging); keeps documents replayable and their latest version determinable; silent overwrites are forbidden.
 - **Content**: registered entry by entry; each entry must carry four fields—date (to the second), affected document and section, before/after comparison, reason for the change.
 
 ### Feature-Doc.md (deliverables level)
@@ -155,6 +155,6 @@ At the following three moments, you **must** first reread the relevant status an
 ## Notes
 
 1. **Sub-agent concurrency safety**: sub-agents may be used for parallel work, but concurrent competing writes to the same document are forbidden. At any moment a document has exactly one writer; otherwise updates get lost or corrupted. When dividing parallel tasks, isolate write boundaries by document/directory.
-2. **Spec–implementation as a two-way contract**: when implementation reveals a mismatch with the spec, first write it back to the Change-Log, then continue coding; silently following a stale spec or privately deviating from it is forbidden. The spec is not one-way input but a two-way contract: implementation follows the spec; when the spec proves wrong or a better solution exists, first update the spec and log the change, then adjust the implementation accordingly.
+2. **Spec–implementation as a two-way contract**: when implementation reveals a mismatch with the spec, first write it back to the Change-Log, then continue coding; silently following a stale spec or privately deviating from it is forbidden. The spec is not one-way input but a two-way contract: implementation follows the spec; when the spec proves wrong or a better solution exists, first update the spec in Change-log, then adjust the implementation accordingly.
 3. **Environment doc never in git**: `ENVIRONMENT.md` often contains apikeys and credentials; it must be excluded from version control (added to `.gitignore`) and never committed.
-4. **Incremental changes must be logged**: all incremental changes must be written to the Change-Log; the sole exception is Plan-and-Progress—it may be freely overwritten in place without logging.
+4. **Incremental changes must be logged**: change ledger whose registration scope is the documents within its own directory (the overall directory and every feature-module/submodule directory), excluding Plan-and-Progress (which may be overwritten in place without logging); keeps documents replayable and their latest version determinable; silent overwrites are forbidden.

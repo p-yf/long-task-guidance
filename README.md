@@ -4,6 +4,14 @@
 
 An anti-drift execution specification for agent long-running tasks (full spec: [SKILL.md](SKILL.md)): externalize goals, specs, progress, and decisions into files to counteract context compression and goal drift, so the task can be losslessly resumed at any interruption point.
 
+## Key Features
+
+- **Tree-structured documents**: overall directory → feature modules → submodules, refined level by level; one directory = one work unit, and the doc tree grows with the task
+- **Files as memory**: goals, specs, progress, and decisions all live on disk; lossless resumption after context compression or interrupted sessions
+- **Spec-first + TDD**: no implementation until the spec is settled; acceptance checklist items are numbered and individually decidable
+- **Tabular progress management**: Plan-and-Progress is mandatory task table + subtask table, with four-state status (Not Started / In Progress / Done / Blocked) + plan zero-out—no dangling tasks
+- **Incremental change ledger**: every requirement/spec change is mandatorily logged; history is replayable
+
 ## Best Usage
 
 **You do not need to keep this skill permanently mounted in your coding agent.** Recommended usage:
