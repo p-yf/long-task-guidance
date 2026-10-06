@@ -1,163 +1,160 @@
 ---
 name: long-task-execution
-description: 面向长时间、多阶段任务的执行与防目标漂移规范。通过将目标、规格、进度与决策外置为文件来对抗上下文压缩与长度限制，并规定调研先行、规格先行、树形文档、TDD、串行验收、增量记录与重读协议，同时定义各层级目录的文件构成与每个文件的作用及内容规范。适用于任何需要 agent 跨多次会话持续推进的复杂任务。
+description: Execution and anti-goal-drift specification for long-running, multi-stage tasks. Externalizes goals, specs, progress, and decisions into files to counteract context compression and length limits; mandates research-first, spec-first, tree-structured docs, TDD, serial acceptance, incremental logging, and a reread protocol, and defines the file layout and per-file content rules for every level of the directory tree. Applies to any complex task an agent must advance across multiple sessions.
 ---
 
-# 长任务执行与防漂移规范
+# Long-Task Execution and Anti-Drift Specification
 
-## 目的与适用场景
+## Purpose and Scope
 
-用于约束 agent 在长时间、多阶段任务中的工作方式，达成两个目标：
+Constrains how an agent works on long-running, multi-stage tasks, with two goals:
 
-1. **任务目标不偏离**：任务意图与验收标准始终以书面形式为准，不随对话衰减。
-2. **工作状态不被打断**：工作内容与工作路径不因上下文压缩或长度限制而丢失。
+1. **No goal drift**: task intent and acceptance criteria always live in writing and never decay across conversations.
+2. **No lost state**: work content and work paths survive context compression and length limits.
 
-核心手段：**将任务状态外置为文件**。对话历史会被压缩或截断，文件不会；文件因此充当可回溯的持久化记忆。
+Core mechanism: **externalize task state into files.** Conversation history gets compressed or truncated; files don't. Files therefore serve as replayable persistent memory.
 
-## 核心原则
+## Core Principles
 
-1. **文件即记忆**：所有目标、规格、进度、关键决策必须落盘，禁止仅存在于对话上下文中。
-2. **目标外置**：任务的最终目标与每个子任务的验收标准必须写入文件；恢复工作时以文件为准，而非以残留记忆为准。
-3. **单一状态入口**：始终维护一份顶层状态文件，明确记录「当前阶段、当前任务、下一步动作、已知阻塞」四项。
-4. **断点可续**：每完成一个工作单元即形成一次进度锚点（文档更新与代码提交），使任务可在任意中断点后无损恢复。
+1. **Files as memory**: all goals, specs, progress, and key decisions must be written to disk; keeping them only in conversation context is forbidden.
+2. **Externalized goals**: the task's final goal and every subtask's acceptance criteria must be written into files; when resuming work, files are authoritative—not residual memory.
+3. **Single status entry**: always maintain one top-level status file that records exactly four items: current phase, current task, next action, known blockers.
+4. **Resumable at any breakpoint**: each finished work unit forms a progress anchor (doc update + code commit), so the task can be losslessly resumed after any interruption.
 
-## 任务开始前置条件
+## Preconditions for Starting a Task
 
-正式启动任务前，必须满足以下条件，否则不得进入执行工作流：
+Before formally starting, these conditions must be met; otherwise the workflow must not begin:
 
-1. **确定任务文档根目录名称**：由用户提供任务文档根目录的名称，全部文档均在此目录下按树形结构落盘。
-2. **由用户说明环境**：用户须在根目录的 `环境.md` 中说明项目开发环境，供 agent 全程参照。
+1. **Name the task-doc root directory**: the user provides the name of the task-doc root directory; all documents are written under it in a tree structure.
+2. **User describes the environment**: the user must fill in `ENVIRONMENT.md` in the root directory describing the development environment; the agent refers to it throughout.
 
-## 执行工作流
+## Execution Workflow
 
-对每一个工作单元，按以下顺序执行：
+For every work unit, execute in this order:
 
-1. **调研先行**：动手前先检索相关领域的最新理论与实践，避免凭过时直觉设计，仅在正式开始前调研，或者与用户沟通过程中进行调研。
-2. **规格先行**：在编写任何代码之前，先编写该单元的规格文档；规格未定，不进入实现。
-3. **树形组织**：文档按树形结构组织——总体目录（以「总体-项目/模块名」命名）内含各功能模块，各功能模块再细分其子功能模块，每一层对应独立目录与独立文档。
-4. **TDD 实现**：以测试驱动方式编码，先写测试再写实现，测试通过方可视为该步骤完成。
-5. **串行完成**：必须彻底完成当前单元后再进入下一单元。完成判定为客观条件：交付文档已就绪、功能无缺陷、逻辑自洽、计划清零（本单元计划中无遗留的「进行中」任务，规则见「开发计划与进度.md」的计划清零条目）。
-6. **增量记录**：任何对需求或规格的改动，必须以增量方式登记，禁止静默覆盖历史版本。
-7. **架构纪律**：保证架构合理与可维护性，禁止补丁叠补丁；当出现修补式堆积时，应回溯并重构而非继续叠加。
-8. **交付**：每个单元完成后，产出两类文档——功能文档（做什么、怎么用）与原理文档（依据什么原理、整体链路如何）。
+1. **Research first**: before starting work, survey current theory and practice in the relevant domain to avoid designing from outdated intuition. Research only before formally starting, or during communication with the user.
+2. **Spec first**: before writing any code, write the unit's spec document; no implementation until the spec is settled.
+3. **Tree-structured organization**: documents are organized as a tree—an overall directory (named `Overall-<project/module>`) containing feature modules, each subdivided into submodules; every level gets its own directory and documents.
+4. **TDD implementation**: code test-first—write tests before implementation; a step counts as done only when its tests pass.
+5. **Serial completion**: fully finish the current unit before starting the next. Completion is judged by objective conditions: deliverable docs are ready, features are defect-free, logic is self-consistent, and the plan is zeroed out (no lingering In-Progress tasks in this unit's plan; see the plan zero-out rule under Plan-and-Progress.md).
+6. **Incremental logging**: any change to requirements or specs must be logged incrementally; silently overwriting history is forbidden.
+7. **Architectural discipline**: keep the architecture sound and maintainable; no patches on patches. When patchwork piles up, go back and refactor instead of stacking more.
+8. **Delivery**: after each unit, produce two documents—Feature-Doc (what it does, how to use it) and Principle-Doc (what principles it relies on, how the whole chain works).
 
-## 分层目录与文件构成
+## Layered Directory and File Layout
 
-文档目录是任务状态的持久化记忆，必须呈树形：总体目录（以「总体-项目/模块名」命名，内含总体文档与全部功能模块）→ 功能模块 → 子功能模块，逐层细化。
+The doc tree is the persistent memory of task state and must be a tree: overall directory (`Overall-<project>`, holding overall docs + all feature modules + deliverables) → feature modules → submodules, refined level by level.
 
-**定义：一个工作单元对应一个同级目录。** 即总体目录、每个功能模块目录、每个子功能模块目录，各自都是一个独立的工作单元；「执行工作流」与「串行完成」均以目录为单位推进，一个目录走完即视为完成一个工作单元。
+**Definition: one work unit = one directory at a given level.** The overall directory, each feature-module directory, and each submodule directory are each independent work units; the execution workflow and serial completion advance per directory—one finished directory = one finished work unit.
 
-各层的文件构成如下。
-
-```
-<任务文档根目录>/
-├── STATE.md                         # 顶层状态入口（必备，唯一）
-├── 环境.md                          # 用户填写的开发环境说明（禁止纳入 git）
-└── 00-总体-<项目名>/                # 总体目录：总体文档 + 全部功能模块 + 交付
-    ├── 理论调研.md
-    ├── 需求文档.md
-    ├── 架构设计.md
-    ├── 开发计划与进度.md
-    ├── 增量修改文档.md
-    ├── <功能模块>/                  # 功能模块嵌套在总体目录下
-    │   ├── 需求文档.md
-    │   ├── 规格文档.md
-    │   ├── 开发计划与进度.md
-    │   ├── 增量修改文档.md
-    │   └── <子功能模块>/            # 功能下的细分，结构同上但更细粒度
-    │       ├── 需求文档.md
-    │       ├── 规格文档.md
-    │       ├── 开发计划与进度.md
-    │       └── 增量修改文档.md
-    └── 交付/                        # 每完成一个功能在此交付
-        └── <功能模块>/
-            ├── 功能文档.md
-            └── 原理文档.md
+```text
+<task-doc root>/
+├── STATE.md                         # top-level status entry (required, unique)
+├── ENVIRONMENT.md                   # user-written environment notes (never commit to git)
+└── 00-Overall-<project>/            # overall dir: overall docs + feature modules + deliverables
+    ├── Research.md
+    ├── Requirements.md
+    ├── Architecture.md
+    ├── Plan-and-Progress.md
+    ├── Change-Log.md
+    ├── <feature-module>/            # feature modules nested under the overall dir
+    │   ├── Requirements.md
+    │   ├── Spec.md
+    │   ├── Plan-and-Progress.md
+    │   ├── Change-Log.md
+    │   └── <submodule>/             # finer-grained, same structure
+    │       ├── Requirements.md
+    │       ├── Spec.md
+    │       ├── Plan-and-Progress.md
+    │       └── Change-Log.md
+    └── Deliverables/                # each finished feature delivers here
+        └── <feature-module>/
+            ├── Feature-Doc.md
+            └── Principle-Doc.md
 ```
 
-各层级最少文件要求：
+Minimum file requirements per level:
 
-- **顶层（任务文档根目录）**：`STATE.md`（唯一状态入口）＋ `环境.md`（用户填写的开发环境说明）。
-- **总体目录（`总体-<项目名>/`）**：理论调研、需求、架构设计、开发计划与进度、增量修改，五类齐备；其下嵌套全部功能模块与交付目录。
-- **功能模块层**：需求、规格、开发计划与进度、增量修改，四类齐备。
-- **子功能模块层**：需求、规格、开发计划与进度、增量修改，四类齐备。
-- **交付层**：功能文档、原理文档，两份齐备。
+- **Top level (task-doc root)**: `STATE.md` (unique status entry) + `ENVIRONMENT.md` (user-written environment notes).
+- **Overall directory (`Overall-<project>/`)**: Research, Requirements, Architecture, Plan-and-Progress, Change-Log—all five present; all feature modules and the Deliverables directory nested inside.
+- **Feature-module level**: Requirements, Spec, Plan-and-Progress, Change-Log—all four present.
+- **Submodule level**: Requirements, Spec, Plan-and-Progress, Change-Log—all four present.
+- **Deliverables level**: Feature-Doc and Principle-Doc—both present.
 
-## 文件作用与内容规范
+## File Roles and Content Rules
 
-### STATE.md（顶层状态入口）
+### STATE.md (top-level status entry)
 
-- **作用**：会话恢复或上下文压缩后，agent 第一个读取的文件，用于在最短时间内重建「我做到哪、接下来做什么」。
-- **内容**：四栏固定结构——当前阶段、当前任务、下一步动作、已知阻塞；并附任务文档树的索引，标明各功能模块的完成状态；。
+- **Role**: the first file the agent reads after session recovery or context compression, to rebuild "where am I, what's next" in the shortest time.
+- **Content**: fixed four-field structure—current phase, current task, next action, known blockers; plus an index of the doc tree marking each module's completion status.
 
-### 环境.md（根目录，用户填写）
+### ENVIRONMENT.md (root, user-written)
 
-- **作用**：承载用户对本项目开发环境的说明，供 agent 在编码与运行时参照；因常含敏感信息，**禁止纳入 git 管理**。
-- **内容**：开发语言与版本、技术栈与框架、依赖的运行环境与服务、apikey/账号密码等凭证、代理与端口、其他环境约束。
+- **Role**: carries the user's description of the development environment for the agent to consult while coding and running; often contains sensitive information, so **never commit it to git**.
+- **Content**: languages and versions, stack and frameworks, runtime environments and services, apikeys/credentials, proxies and ports, other constraints.
 
-### 需求文档.md
+### Requirements.md
 
-- **作用**：界定「要解决什么问题、边界在哪」，是目标不偏离的锚点。
-- **内容**：背景与动机、要达成的目标、明确的不做范围（out-of-scope）、成功判据。总体目录、功能模块层与子功能模块层各一份，逐层描述对应范围的需求。
+- **Role**: defines "what problem to solve, where the boundary is"—the anchor against goal drift.
+- **Content**: background and motivation, goals to achieve, explicit out-of-scope, success criteria. One copy per level (overall / feature module / submodule), each describing the requirements of its own scope.
 
-### 理论调研.md（仅总体目录）
+### Research.md (overall directory only)
 
-- **作用**：记录动手前检索到的领域最新实践与理论，为设计与规格提供依据，避免凭过时直觉设计。
-- **内容**：来源与日期、可借鉴的做法、被否决的方案及原因、对本项目设计的直接影响。
+- **Role**: records the current theory and practice surveyed before starting, grounding design and specs; avoids designing from outdated intuition.
+- **Content**: sources and dates, adoptable practices, rejected options and why, direct impact on this project's design.
 
-### 架构设计.md（仅总体目录）
+### Architecture.md (overall directory only)
 
-- **作用**：描述系统整体结构与模块间关系，保证架构合理、可维护，防止补丁叠补丁。
-- **内容**：模块划分与职责、数据/控制链路、关键设计决策及其权衡、模块间依赖关系。
+- **Role**: describes the system's overall structure and inter-module relations, keeping the architecture sound and maintainable, preventing patches on patches.
+- **Content**: module breakdown and responsibilities, data/control flow, key design decisions and their trade-offs, inter-module dependencies.
 
-### 规格文档.md（功能模块层与子功能模块层）
+### Spec.md (feature-module and submodule levels)
 
-- **作用**：编码前的强制产物，「规格未定不进入实现」。是判断实现是否正确的客观标准。
-- **内容**：架构设计、接口定义、输入输出与行为、边界与异常处理、可测试的验收清单（逐条带序号编号、逐条可判定，而非主观描述；序号用于与开发计划与进度中的任务建立对应关系）。
+- **Role**: mandatory pre-coding artifact—"no implementation until the spec is settled." The objective standard for judging whether the implementation is correct.
+- **Content**: architecture, interface definitions, inputs/outputs/behavior, edge cases and error handling, and a testable acceptance checklist (each item numbered and objectively decidable, not subjective prose; item numbers are used to map tasks in Plan-and-Progress).
 
-### 开发计划与进度.md
+### Plan-and-Progress.md
 
-- **作用**：提供进度锚点，使任务可在任意中断点无损恢复。
-- **范围**：覆盖从文档、编码到交付的整个生命周期。任务拆分必须贯穿各阶段——文档编写（理论调研、需求、架构设计、规格）、编码与测试、交付（功能文档与原理文档），不得只登记编码任务。
-- **任务归属**：模块级与子功能模块级计划只登记本模块范围内可独立完成、可独立判定验收的任务；跨模块或依赖后续集成阶段的任务（如前后端联调、整体集成测试）一律登记在总体目录的开发计划与进度中，禁止下沉到模块级计划。
-- **内容**：**强制为表格格式**，由以下两类表格构成：
-  - **任务表**：每行一个任务，列名固定为——任务序号、任务描述、涉及文件、状态、与规格验收清单的对应关系（填写该任务对应的规格验收清单条目序号；若已完成对应的验收清单，须在此列标注）。
-  - **子任务表**（若任务存在子任务则必须提供）：列名与任务表完全一致，另增加一列——父任务序号。
-- **状态规则**：状态固定为四值——未开始、进行中、已完成、受阻。任务描述必须当下可判定，禁止「等 XX 阶段再确认」一类指向未来的模糊措辞；完成条件依赖本单元之外因素的任务不属于本单元计划，若确需登记，状态只能标「受阻」并注明阻塞原因与解除条件，禁止挂「进行中」。
-- **计划清零**：本目录被视为完成之前，其计划中全部任务必须处置为「已完成」或「受阻」；所有受阻任务必须同步登记到上层（总体）计划中，由上层计划接管跟踪，禁止状态悬空或遗留「进行中」任务进入下一单元。
+- **Role**: provides progress anchors so the task can be losslessly resumed at any interruption point.
+- **Scope**: covers the whole lifecycle—documentation, coding, delivery. Task breakdown must span all phases: documentation (research, requirements, architecture, spec), coding and testing, delivery (Feature-Doc and Principle-Doc); registering only coding tasks is forbidden.
+- **Task ownership**: module-level and submodule-level plans register only tasks that can be completed and accepted within that module's own scope; cross-module tasks or tasks depending on later integration phases (e.g., front-end/back-end integration, system-level integration testing) are registered only in the overall directory's Plan-and-Progress—pushing them down to module-level plans is forbidden.
+- **Content**: **mandatory table format**, consisting of two kinds of tables:
+  - **Task table**: one task per row; fixed columns—Task ID, Description, Files, Status, Acceptance-checklist mapping (enter the spec checklist item numbers this task maps to; if the mapped checklist items are complete, mark it in this column).
+  - **Subtask table** (required when a task has subtasks): identical columns plus one more—Parent Task ID.
+- **Status rules**: exactly four values—Not Started, In Progress, Done, Blocked. Task descriptions must be decidable now; future-pointing vague wording like "confirm at the integration phase" is forbidden. A task whose completion depends on factors outside this unit does not belong in this unit's plan; if it must be registered, its status can only be Blocked with the blocking reason and unblocking condition noted—never In Progress.
+- **Plan zero-out**: before this directory counts as complete, every task in its plan must be resolved to Done or Blocked; all Blocked tasks must be synchronously registered in the parent (overall) plan, which then takes over tracking. Dangling statuses, or lingering In-Progress tasks carried into the next unit, are forbidden.
 
-### 增量修改文档.md
+### Change-Log.md
 
-- **作用**：每层各个文档（除了开发计划与进度）的变更台账，保证各个文档可回放、可判定最新版本，禁止静默覆盖历史。
-- **内容**：逐条登记，每条必须含四字段——日期（精确到秒）、受影响文档与章节、变更前后对照、变更原因。
+- **Role**: change ledger for every document at each level (except Plan-and-Progress), keeping documents replayable and their latest version determinable; silent overwrites are forbidden.
+- **Content**: registered entry by entry; each entry must carry four fields—date (to the second), affected document and section, before/after comparison, reason for the change.
 
-### 功能文档.md（交付层）
+### Feature-Doc.md (deliverables level)
 
-- **作用**：面向使用者说明交付成果「做什么、怎么用」。
-- **内容**：功能概述、使用步骤与示例、配置项、已知限制。
+- **Role**: tells users what the deliverable does and how to use it.
+- **Content**: feature overview, usage steps and examples, configuration, known limitations.
 
-### 原理文档.md（交付层）
+### Principle-Doc.md (deliverables level)
 
-- **作用**：说明「依据什么原理开发、整体链路如何」，供后续维护与回溯。
-- **内容**：实现原理、整体链路 walkthrough、与设计/规格的对应关系、取舍说明。
+- **Role**: explains "on what principles it was built, how the whole chain works," for later maintenance and retrospection.
+- **Content**: implementation principles, end-to-end walkthrough, mapping to design/spec, trade-off notes.
 
-## 抗压缩重读协议
+## Anti-Compression Reread Protocol
 
-在以下三个时机，**必须**先重新读取对应的状态文件与规格文件，再继续工作；禁止凭压缩后的残留记忆直接推进：
+At the following three moments, you **must** first reread the relevant status and spec files before continuing; proceeding on compressed residual memory is forbidden:
 
-- **开始新单元前**：读取该单元的规格文件与顶层状态文件。
-- **完成一个子任务后**：更新并复读顶层状态文件。
-- **上下文被压缩后**：复读顶层状态文件与当前单元规格文件，据此重建工作位置。
+- **Before starting a new unit**: read that unit's spec file and the top-level status file.
+- **After finishing a subtask**: update and reread the top-level status file.
+- **After context compression**: reread the top-level status file and the current unit's spec file, and rebuild your working position from them.
 
-## 提交与检查点
+## Commits and Checkpoints
 
-- 每完成一个工作单元，提交一次代码。
-- 提交信息应关联对应的文档路径，使代码状态与文档状态一一对应，避免出现「代码已提交而文档未同步」或反之的漂移。
+- Commit once per finished work unit.
+- Commit messages should reference the related doc paths so that code state and doc state correspond one-to-one, avoiding the drift of "code committed but docs not synced" or the reverse.
 
-## 注意事项
+## Notes
 
-1. **子 agent 的并发安全**：可以使用子 agent 并行分工，但必须保证子 agent 之间不存在对同一份文档的竞争并发写入。同一文档在任一时刻只能由单一写入者负责，否则会导致更新丢失或内容错乱；划分并行任务时应按文档/目录隔离写入边界。
-2. **规格与实现的双向契约**：实现过程中发现与规格不符时，必须先回写增量修改文档再继续编码，禁止静默按过时规格推进或私自偏离规格。规格不是单向输入而是双向契约：实现须遵循规格；而当规格被证实有误或存在更优解时，须先更新规格并登记增量，再据此调整实现。
-3. **环境文档禁止纳入 git**：`环境.md` 常含 apikey、账号密码等敏感信息，必须排除在版本控制之外（加入 `.gitignore`），禁止提交。
-4. **增量修改必须登记**：所有的增量修改都必须要写到增量修改文档中；唯一例外是开发计划与进度——开发计划与进度可以在原文覆盖自行修改，无需登记增量。
-
+1. **Sub-agent concurrency safety**: sub-agents may be used for parallel work, but concurrent competing writes to the same document are forbidden. At any moment a document has exactly one writer; otherwise updates get lost or corrupted. When dividing parallel tasks, isolate write boundaries by document/directory.
+2. **Spec–implementation as a two-way contract**: when implementation reveals a mismatch with the spec, first write it back to the Change-Log, then continue coding; silently following a stale spec or privately deviating from it is forbidden. The spec is not one-way input but a two-way contract: implementation follows the spec; when the spec proves wrong or a better solution exists, first update the spec and log the change, then adjust the implementation accordingly.
+3. **Environment doc never in git**: `ENVIRONMENT.md` often contains apikeys and credentials; it must be excluded from version control (added to `.gitignore`) and never committed.
+4. **Incremental changes must be logged**: all incremental changes must be written to the Change-Log; the sole exception is Plan-and-Progress—it may be freely overwritten in place without logging.
